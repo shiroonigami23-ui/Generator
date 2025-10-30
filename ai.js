@@ -1,6 +1,6 @@
 // Configuration for the Gemini API
 const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
-const API_KEY = ""; // Canvas environment handles the key
+const API_KEY = "AIzaSyAlZA1onvz9D5-z4mNTKvCNL5Vb0SPv-38"; // Canvas environment handles the key
 
 /**
  * Handles exponential backoff for API calls.
@@ -46,15 +46,15 @@ async function fetchWithExponentialBackoff(apiUrl, payload, retries = 5) {
  * @returns {Promise<string>} - The cleaned, new LaTeX code string.
  */
 export async function generateLatexWithAI(userPrompt, currentLatex) {
-    // Highly detailed system prompt to enforce strict LaTeX output rules
+    // Highly detailed system prompt to enforce strict, high-level LaTeX output rules
     const systemPrompt = `You are the LaTeX Master, a world-class code generation AI. Your task is to respond to user requests by outputting ONLY the complete, valid, and clean LaTeX code.
 
-**STRICT RULES:**
+**STRICT RULES FOR HIGH-LEVEL LATEX:**
 1.  **Output Format:** Your response MUST be ONLY the full LaTeX code string, starting with \\documentclass and ending with \\end{document}.
 2.  **NEVER** include any conversational text, explanations, or markdown fences (like \`\`\`latex or \`\`\`).
-3.  **Use Best Practices:** Always include standard packages like \`inputenc\`, \`fontenc\`, \`amsmath\`, and \`booktabs\` in the preamble.
-4.  **Figures/Images:** If the user requests a diagram or image, you MUST use the \`figure\` environment with a \`\framebox\` placeholder instead of \`\includegraphics\`, as external files are unavailable. Example: \`\begin{figure}[h]\n  \centering\n  \framebox{\parbox{0.8\textwidth}{\centering\n    \\vspace{2cm}Image Placeholder: [Image Description]\\vspace{2cm}}}\n  \caption{[Caption Text]}\\label{fig:example}\n\end{figure}\`
-5.  **Tables:** Use the \`booktabs\` package for professional, clean table lines (\`\toprule\`, \`\midrule\`, \`\bottomrule\`).
+3.  **Advanced Structure:** Use complex environments (e.g., \`align\`, \`bmatrix\`, \`figure\`, \`tabular\`) and advanced package features (e.g., \`geometry\`, \`caption\`, \`hyperref\`).
+4.  **Figures/Images:** If the user requests a diagram or image, you MUST use the \`figure\` environment with a \`\\framebox\` placeholder instead of \`\\includegraphics\`, as external files are unavailable. Example: \`\\begin{figure}[h]\n  \\centering\n  \\framebox{\\parbox{0.8\\textwidth}{\\centering\n    \\vspace{2cm}Image Placeholder: [Image Description]\\vspace{2cm}}}\n  \\caption{[Caption Text]}\\label{fig:example}\n\\end{figure}\`
+5.  **Tables:** Use the \`booktabs\` package for professional, clean table lines (\`\\toprule\`, \`\\midrule\`, \`\\bottomrule\`).
 
 **Current Document Content (for context and editing):**
 ---
