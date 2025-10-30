@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI LaTeX Studio</title>
-    <!-- Load Tailwind CSS -->
+    <title>AI LaTeX Studio - Project Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
     <script>
@@ -19,27 +18,22 @@
 </head>
 <body class="min-h-screen transition-colors duration-300">
 
-    <!-- Splash Screen (Authentication required) -->
     <div id="splashScreen" class="fixed inset-0 bg-[var(--color-background)] flex items-center justify-center p-4 z-50 transition-opacity duration-500 opacity-0 hidden">
         <div class="w-full max-w-sm p-8 bg-[var(--color-surface)] rounded-xl shadow-2xl text-center">
             <h1 class="text-4xl font-extrabold text-[var(--color-primary)] mb-4">LaTeX Studio</h1>
-            <p class="text-lg text-[var(--color-text)] mb-8">AI-Powered Document Creation</p>
+            <p class="text-lg text-[var(--color-text)] mb-8">AI-Powered Project Creation</p>
             <button id="googleSignInBtn" class="btn-action w-full bg-white text-gray-800 hover:bg-gray-100 border border-gray-300 shadow-md">
                 <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.158,7.961,3.039l5.657-5.657C34.046,6.053,29.084,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.096,3.744C14.796,15.894,18.06,14,21.5,14c3.243,0,6.236,1.146,8.441,3.039l5.657-5.657C34.046,6.053,29.084,4,24,4C16.318,4,9.664,8.397,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.916-1.579,13.888-4.301l-6.195-5.238C29.211,35.091,26.715,36,24,36c-5.218,0-9.617-3.328-11.266-7.708l-6.208,3.75C8.803,38.657,15.116,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083L43.595,20.076C40.09,13.682,32.74,9,24,9c-3.398,0-6.634,0.732-9.456,2.023l6.096,3.744C21.611,14.894,22.759,14.5,24,14.5c4.757,0,8.742,3.313,9.866,7.747h-11.45V28h11.303C31.57,32.378,28.067,36,24,36c-2.715,0-5.211-0.909-7.251-2.434l-6.208,3.75C8.803,38.657,15.116,44,24,44c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
                 Sign in with Google
             </button>
-            <p class="mt-4 text-sm text-gray-500">Sign up or login to save your documents.</p>
+            <p class="mt-4 text-sm text-gray-500">Sign up or login to save your projects.</p>
         </div>
     </div>
 
-    <!-- Main Application Grid (Hidden until authenticated) -->
     <div id="appContainer" class="flex min-h-screen hidden">
 
-        <!-- Sidebar for Profile and File Management -->
-        <!-- Adjusted width for better mobile/tablet visibility -->
         <aside id="sidebar" class="sidebar-base w-[280px] md:w-[320px] transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
             <div class="p-4 flex flex-col h-full">
-                <!-- Header/Close Button (Mobile) -->
                 <div class="flex justify-between items-center mb-6 lg:hidden">
                     <h2 class="text-xl font-bold">Menu</h2>
                     <button id="sidebarToggleBtn" class="p-2 rounded-full hover:bg-gray-700/50">
@@ -47,7 +41,6 @@
                     </button>
                 </div>
 
-                <!-- User Profile -->
                 <div class="profile-card mb-6 rounded-xl border border-[var(--color-border)] shadow-md">
                     <div class="flex items-center">
                         <div id="userAvatar" class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">U</div>
@@ -62,21 +55,28 @@
                     </div>
                 </div>
 
-                <!-- File Actions -->
                 <div class="mb-6 flex flex-col gap-3">
-                    <button id="newDocumentBtn" class="btn-action bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg">
+                    <button id="newProjectBtn" class="btn-action bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
-                        New Document
+                        New Project
                     </button>
+                    <label for="assetFileInput" id="importAssetLabel" class="btn-action bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-lg cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                        Import Asset
+                    </label>
+                    <input type="file" id="assetFileInput" accept="image/*" class="hidden">
                 </div>
 
-                <!-- Document List -->
-                <h3 class="font-bold text-xs uppercase text-gray-400 mb-2 tracking-widest">My Documents</h3>
-                <div id="documentList" class="flex-grow overflow-y-auto space-y-2 pb-4">
-                    <p class="text-sm text-gray-500 loading-text">Loading documents...</p>
+                <h3 class="font-bold text-xs uppercase text-gray-400 mb-2 tracking-widest">My Projects</h3>
+                <div id="projectList" class="overflow-y-auto space-y-2 pb-4">
+                    <p class="text-sm text-gray-500 loading-text">Loading projects...</p>
+                </div>
+                
+                <h3 class="font-bold text-xs uppercase text-gray-400 my-2 pt-4 border-t border-[var(--color-border)] tracking-widest">Project Assets</h3>
+                <div id="assetList" class="overflow-y-auto space-y-2 pb-4 flex-grow">
+                    <p class="text-sm text-gray-500 loading-text">No assets imported.</p>
                 </div>
 
-                <!-- Footer / Sign Out -->
                 <div class="mt-4 pt-4 border-t border-[var(--color-border)]">
                     <button id="signOutBtn" class="btn-action w-full bg-red-600 hover:bg-red-700 rounded-lg shadow-md">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
@@ -87,30 +87,25 @@
             </div>
         </aside>
 
-        <!-- Main Content Area (Editor & Preview) -->
         <main class="flex-1 p-4 md:p-8 overflow-y-auto">
             <header class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div class="flex items-center w-full sm:w-auto">
-                    <!-- Mobile Sidebar Toggle -->
                     <button id="sidebarToggleBtnMobile" class="p-2 rounded-full hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition duration-200 lg:hidden mr-3 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
                     </button>
-                    <!-- Document Title (Responsive Truncation) -->
-                    <h1 id="documentTitleDisplay" class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white truncate max-w-full sm:max-w-md">Loading...</h1>
+                    <h1 id="projectTitleDisplay" class="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white truncate max-w-full sm:max-w-md">Loading...</h1>
                 </div>
 
-                <!-- Export PDF Button - Will now trigger the seamless, simulated API call -->
-                <button id="exportBtn" class="btn-action bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-lg w-full sm:w-auto">
+                <button id="exportBtn" class="btn-action bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg w-full sm:w-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                     Export PDF
                 </button>
             </header>
 
-            <!-- AI Control Panel -->
             <div class="ai-panel p-4 mb-6 rounded-xl shadow-xl">
                 <label for="aiPrompt" class="block text-sm font-semibold mb-2 text-gray-300 dark:text-gray-200">AI Command (Powered by Gemini)</label>
                 <div class="flex flex-col md:flex-row gap-3">
-                    <input type="text" id="aiPrompt" placeholder="Ask AI to write a report, add a table, or fix an error..."
+                    <input type="text" id="aiPrompt" placeholder="Ask AI to write a report, add a table, or insert an image..."
                            class="flex-grow input-field focus:ring-blue-500">
                     <button id="aiGenerateBtn" class="btn-action bg-green-600 hover:bg-green-700 w-full md:w-auto flex-shrink-0 rounded-lg shadow-md">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.2 1.2L3 12l5.8 1.9a2 2 0 0 1 1.2 1.2L12 21l1.9-5.8a2 2 0 0 1 1.2-1.2L21 12l-5.8-1.9a2 2 0 0 1-1.2-1.2Z"/><path d="M12 3v18"/></svg>
@@ -125,15 +120,14 @@
                 </div>
                 <p id="aiStatus" class="mt-2 text-sm text-gray-400"></p>
                 
-                <!-- AI Quick-Insert Tools -->
                 <div class="mt-4 flex flex-wrap gap-2">
                     <button id="insertTableBtn" class="btn-ai-quick shadow-inner">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 7h20M2 17h20M2 12h20M2 22h20M2 2h20"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/><path d="M12 3v18"/></svg>
                         Table
                     </button>
                     <button id="insertFigureBtn" class="btn-ai-quick shadow-inner">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                        Figure
+                        Figure (uses Asset)
                     </button>
                     <button id="insertMathBtn" class="btn-ai-quick shadow-inner">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/><line x1="5" x2="19" y1="17" y2="17"/><line x1="5" x2="19" y1="7" y2="7"/></svg>
@@ -142,33 +136,27 @@
                 </div>
             </div>
 
-            <!-- Main Workspace (Editor and Preview) -->
-            <!-- The grid uses a single column on small screens and two columns on medium/large screens. -->
             <div class="grid lg:grid-cols-2 gap-6 h-[calc(100vh-280px)] md:h-[calc(100vh-320px)]">
-                <!-- LaTeX Editor Panel -->
                 <div class="flex flex-col h-full">
                     <h2 class="text-xl font-semibold mb-3 text-blue-600 dark:text-blue-400">LaTeX Code Editor</h2>
                     <textarea id="latexEditor" oninput="window.updatePreview()" class="w-full flex-grow p-4 rounded-xl focus:ring-4 focus:ring-blue-500/50 shadow-inner code-editor-styles min-h-[300px] lg:min-h-0">
-Loading documents or creating new...
+Loading projects or creating new...
                     </textarea>
                 </div>
 
-                <!-- Live Preview Panel -->
                 <div class="flex flex-col h-full">
                     <div class="flex justify-between items-center mb-3">
                         <h2 class="text-xl font-semibold text-purple-600 dark:text-purple-400">Live Preview (Simulated)</h2>
-                        <span id="previewStatus" class="text-xs py-1 px-2 rounded-full preview-status-text shadow-sm">Document: A4, Margin: 1in</span>
+                        <span id="previewStatus" class="text-xs py-1 px-2 rounded-full preview-status-text shadow-sm">Project: A4, Margin: 1in</span>
                     </div>
-                    <!-- Added flex-grow and overflow-y-auto to the container to manage height -->
                     <div id="previewContainer" class="p-4 rounded-xl shadow-2xl preview-page-styles flex-grow overflow-y-auto">
-                        <p class="text-center text-gray-500 pt-10">Start typing LaTeX or use the AI to generate a document.</p>
+                        <p class="text-center text-gray-500 pt-10">Start typing LaTeX or use the AI to generate a project.</p>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Modal for status and confirmations -->
     <div id="statusModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center p-4 z-50">
         <div id="modalContent" class="modal-card max-w-sm w-full border-t-4 rounded-xl shadow-2xl">
             <h3 id="modalTitle" class="text-xl font-bold mb-3">Status</h3>
@@ -183,7 +171,6 @@ Loading documents or creating new...
         </div>
     </div>
 
-    <!-- Script Imports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script type="module" src="./firebase.js"></script>
     <script type="module" src="./utils.js"></script>
@@ -193,4 +180,3 @@ Loading documents or creating new...
 
 </body>
 </html>
-
