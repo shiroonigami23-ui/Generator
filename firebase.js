@@ -8,7 +8,20 @@ import {
     signInWithPopup,
     signOut 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, deleteDoc, collection, query, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { 
+    getFirestore, 
+    doc, 
+    setDoc, 
+    deleteDoc, 
+    collection, 
+    query, 
+    onSnapshot, 
+    updateDoc, 
+    getDocs, 
+    getDoc, 
+    serverTimestamp,
+    addDoc 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { showStatusModal } from "./utils.js";
 
 // Global variables provided by the Canvas environment
@@ -16,8 +29,6 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // --- Firebase Configuration (Using provided global config or hardcoded fallback) ---
-// The Canvas environment provides configuration via __firebase_config. 
-// We use the hardcoded version as a reliable fallback.
 const FALLBACK_FIREBASE_CONFIG = {
     apiKey: "AIzaSyBugNXrZaf4QlLdMjh92iUV8obwaV8-XKI",
     authDomain: "generator-a3655.firebaseapp.com",
@@ -36,25 +47,32 @@ let db, auth;
 export let userId = null;
 export let isAuthReady = false;
 
-// State management for current document
-export let currentDocumentId = null;
-export let currentDocumentContent = "";
+// State management for current Project (renamed from document)
+export let currentProjectId = null;
+export let currentProjectContent = "";
 
 // --- Paths ---
-export const getUserDocumentsCollection = () => {
+const getUserProjectsCollection = () => {
     if (!userId) throw new Error("User ID is not set. Auth failed.");
-    return collection(db, 'artifacts', appId, 'users', userId, 'documents');
+    // Renamed 'documents' to 'projects'
+    return collection(db, 'artifacts', appId, 'users', userId, 'projects');
 };
-const getDocumentRef = (docId) => {
+const getProjectRef = (projectId) => {
     if (!userId) throw new Error("User ID is not set. Auth failed.");
-    return doc(db, 'artifacts', appId, 'users', userId, 'documents', docId);
+    return doc(db, 'artifacts', appId, 'users', userId, 'projects', projectId);
+};
+const getProjectAssetsCollection = (projectId) => {
+    if (!userId) throw new Error("User ID is not set. Auth failed.");
+    return collection(getProjectRef(projectId), 'assets');
+};
+const getAssetRef = (projectId, assetId) => {
+    return doc(getProjectAssetsCollection(projectId), assetId);
 };
 
 // --- Initialization ---
 
 /**
- * Initializes Firebase App and services. Does NOT handle sign-in directly.
- * The sign-in process is handled by the onAuthStateChanged listener in app.js
+ * Initializes Firebase App and services.
  */
 export function initFirebase() {
     if (!firebaseConfig || !firebaseConfig.apiKey) {
@@ -67,25 +85,21 @@ export function initFirebase() {
     db = getFirestore(app);
     auth = getAuth(app);
     
-    // Check for custom token and use it if present
+    // Auth logic remains the same (Custom Token priority, then Anonymous fallback)
     if (initialAuthToken) {
         signInWithCustomToken(auth, initialAuthToken).catch(error => {
             console.error("Custom token sign-in failed:", error);
-            // Fallback to anonymous sign-in if custom token fails (for local testing)
             signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
         });
     } else {
-        // Fallback for environments without custom token
         signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
     }
 
-    // Export the necessary objects
     return { db, auth };
 }
 
 /**
  * Attaches an observer to the authentication state.
- * @param {function} callback - Function to run on auth state change.
  */
 export function observeAuthState(callback) {
     if (!auth) throw new Error("Firebase Auth not initialized.");
@@ -104,7 +118,6 @@ export async function signInWithGoogle() {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
-        // Auth state observer handles UI update
     } catch (error) {
         console.error("Google Sign-In Error:", error);
         showStatusModal("Sign-In Failed", `Could not sign in with Google: ${error.message}`, true);
@@ -118,7 +131,6 @@ export async function signOutUser() {
     if (!auth) throw new Error("Firebase Auth not initialized.");
     try {
         await signOut(auth);
-        // Auth state observer handles UI update
     } catch (error) {
         console.error("Sign-Out Error:", error);
         showStatusModal("Sign-Out Failed", `Could not sign out: ${error.message}`, true);
@@ -126,127 +138,187 @@ export async function signOutUser() {
 }
 
 
-// --- CRUD Operations (Rest of the file remains the same) ---
+// --- Project CRUD Operations (Renamed from Document) ---
 
 /**
- * Saves the current document content and name (if provided).
+ * Saves the current project content and name (if provided).
  * @param {string} latexContent - The LaTeX content to save.
- * @param {string} [name] - Optional new name for the document.
+ * @param {string} [name] - Optional new name for the project.
  */
-export async function saveDocument(latexContent, name = null) {
-    if (!isAuthReady || !currentDocumentId) {
-        // Only warn if we are trying to save but aren't ready/haven't created a doc yet.
-        if (isAuthReady) console.warn("Cannot save: No current document ID set.");
+export async function saveProject(latexContent, name = null) {
+    if (!isAuthReady || !currentProjectId) {
+        if (isAuthReady) console.warn("Cannot save: No current project ID set.");
         return;
     }
 
     try {
         const data = {
             content: latexContent,
-            updatedAt: new Date().toISOString()
+            updatedAt: serverTimestamp() // Use server timestamp for accuracy
         };
         if (name) {
             data.name = name;
         }
 
-        const docRef = getDocumentRef(currentDocumentId);
-        await setDoc(docRef, data, { merge: true });
-        currentDocumentContent = latexContent;
-        // console.log(`Document ${currentDocumentId} saved successfully.`);
-
+        const projectRef = getProjectRef(currentProjectId);
+        await setDoc(projectRef, data, { merge: true });
+        currentProjectContent = latexContent;
     } catch (error) {
-        console.error("Error saving document:", error);
-        showStatusModal("Save Error", `Failed to save document: ${error.message}`, true);
+        console.error("Error saving project:", error);
+        showStatusModal("Save Error", `Failed to save project: ${error.message}`, true);
     }
 }
 
 /**
- * Creates a new document and sets it as the current active document.
- * @param {string} name - The name of the new document.
- * @param {string} initialContent - The content to start the document with.
- * @returns {Promise<string>} The new document ID.
+ * Creates a new project and sets it as the current active project.
+ * @param {string} name - The name of the new project.
+ * @param {string} initialContent - The content to start the project with.
+ * @returns {Promise<string>} The new project ID.
  */
-export async function createNewDocument(name, initialContent) {
-    if (!isAuthReady) throw new Error("Firebase not ready for document creation.");
+export async function createNewProject(name, initialContent) {
+    if (!isAuthReady) throw new Error("Firebase not ready for project creation.");
     try {
-        const newDocRef = doc(getUserDocumentsCollection());
-        await setDoc(newDocRef, {
+        const newProjectRef = doc(getUserProjectsCollection());
+        await setDoc(newProjectRef, {
             name: name,
             content: initialContent,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
         });
-        currentDocumentId = newDocRef.id;
-        currentDocumentContent = initialContent;
-        return newDocRef.id;
+        currentProjectId = newProjectRef.id;
+        currentProjectContent = initialContent;
+        return newProjectRef.id;
     } catch (error) {
-        console.error("Error creating document:", error);
-        showStatusModal("Creation Error", `Failed to create new document: ${error.message}`, true);
+        console.error("Error creating project:", error);
+        showStatusModal("Creation Error", `Failed to create new project: ${error.message}`, true);
         throw error;
     }
 }
 
 /**
- * Deletes the specified document.
- * @param {string} docId - The ID of the document to delete.
+ * Deletes the specified project.
+ * @param {string} projectId - The ID of the project to delete.
  */
-export async function deleteExistingDocument(docId) {
+export async function deleteExistingProject(projectId) {
     if (!isAuthReady) throw new Error("Firebase not ready for deletion.");
     try {
-        await deleteDoc(getDocumentRef(docId));
-        // console.log(`Document ${docId} deleted successfully.`);
+        await deleteDoc(getProjectRef(projectId));
     } catch (error) {
-        console.error("Error deleting document:", error);
-        showStatusModal("Deletion Error", `Failed to delete document: ${error.message}`, true);
+        console.error("Error deleting project:", error);
+        showStatusModal("Deletion Error", `Failed to delete project: ${error.message}`, true);
     }
 }
 
 /**
- * Renames the specified document.
- * @param {string} docId - The ID of the document to rename.
- * @param {string} newName - The new name for the document.
+ * Renames the specified project.
+ * @param {string} projectId - The ID of the project to rename.
+ * @param {string} newName - The new name for the project.
  */
-export async function renameDocument(docId, newName) {
+export async function renameProject(projectId, newName) {
     if (!isAuthReady) throw new Error("Firebase not ready for rename.");
     try {
-        await updateDoc(getDocumentRef(docId), {
+        await updateDoc(getProjectRef(projectId), {
             name: newName,
-            updatedAt: new Date().toISOString()
+            updatedAt: serverTimestamp()
         });
-        // console.log(`Document ${docId} renamed to ${newName}.`);
     } catch (error) {
-        console.error("Error renaming document:", error);
-        showStatusModal("Rename Error", `Failed to rename document: ${error.message}`, true);
+        console.error("Error renaming project:", error);
+        showStatusModal("Rename Error", `Failed to rename project: ${error.message}`, true);
     }
 }
 
-
 /**
- * Sets up the real-time listener for the document list.
- * @param {function} callback - Function to run on document changes.
+ * Sets up the real-time listener for the project list.
+ * @param {function} callback - Function to run on project changes.
  */
-export function listenForDocuments(callback) {
+export function listenForProjects(callback) {
     if (!auth || !userId) {
         console.error("User not authenticated or listener called too early.");
-        // Return a dummy function to unsubscribe
         return () => {}; 
     }
     try {
-        const docQuery = query(getUserDocumentsCollection());
-        return onSnapshot(docQuery, (snapshot) => {
-            const documents = snapshot.docs.map(doc => ({
+        const projectsQuery = query(getUserProjectsCollection());
+        return onSnapshot(projectsQuery, (snapshot) => {
+            const projects = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
             // Sort by most recently updated
-            documents.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-            callback(documents);
+            projects.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+            callback(projects);
         }, (error) => {
-            console.error("Firestore Listener Error:", error);
-            showStatusModal("Data Error", `Failed to fetch documents in real-time: ${error.message}`, true);
+            console.error("Firestore Project Listener Error:", error);
+            showStatusModal("Data Error", `Failed to fetch projects in real-time: ${error.message}`, true);
         });
     } catch (e) {
-        console.error("Failed to initialize listener:", e);
+        console.error("Failed to initialize project listener:", e);
         return () => {}; 
+    }
+}
+
+// --- Asset Management Operations (NEW) ---
+
+/**
+ * Saves an image file as a Base64 string asset under the current project.
+ * @param {string} fileName - The original file name.
+ * @param {string} base64Data - The Base64 representation of the image.
+ * @returns {Promise<void>}
+ */
+export async function saveAsset(fileName, base64Data) {
+    if (!currentProjectId) throw new Error("Cannot save asset: No current project loaded.");
+    if (!isAuthReady) throw new Error("Firebase not ready for asset upload.");
+
+    try {
+        // Use the filename to ensure uniqueness for now, or you could use doc() for a random ID
+        const assetRef = doc(getProjectAssetsCollection(currentProjectId), fileName);
+        await setDoc(assetRef, {
+            name: fileName,
+            data: base64Data, // Store Base64 string directly
+            uploadedAt: serverTimestamp(),
+            projectId: currentProjectId
+        });
+        showStatusModal("Asset Saved", `Asset "${fileName}" uploaded successfully.`, false);
+
+    } catch (error) {
+        console.error("Error saving asset:", error);
+        showStatusModal("Asset Error", `Failed to upload asset: ${error.message}`, true);
+        throw error;
+    }
+}
+
+/**
+ * Fetches all assets for the given project ID.
+ * @param {string} projectId - The ID of the project.
+ * @returns {Promise<Array<object>>} - List of assets { id, name, data, uploadedAt }.
+ */
+export async function getAssets(projectId) {
+    if (!isAuthReady) return [];
+    try {
+        const q = query(getProjectAssetsCollection(projectId));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    } catch (error) {
+        console.error("Error fetching assets:", error);
+        showStatusModal("Asset Error", `Failed to fetch assets for project.`, true);
+        return [];
+    }
+}
+
+/**
+ * Deletes a specific asset from the project.
+ * @param {string} projectId - The project ID.
+ * @param {string} assetId - The asset ID (filename).
+ */
+export async function deleteAsset(projectId, assetId) {
+    if (!isAuthReady) throw new Error("Firebase not ready for asset deletion.");
+    try {
+        await deleteDoc(getAssetRef(projectId, assetId));
+        showStatusModal("Asset Deleted", `Asset "${assetId}" removed successfully.`, false);
+    } catch (error) {
+        console.error("Error deleting asset:", error);
+        showStatusModal("Deletion Error", `Failed to delete asset: ${error.message}`, true);
     }
 }
