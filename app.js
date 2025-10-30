@@ -1,12 +1,12 @@
+
 import * as FB from "./firebase.js";
 import * as UI from "./ui.js";
 import * as UTILS from "./utils.js";
 import { generateLatexWithAI } from "./ai.js";
 
 // --- Cloudinary Configuration (Unsigned Upload) ---
-// IMPORTANT: Replace with your actual Cloud Name and Upload Preset
-// You must create an unsigned upload preset in your Cloudinary dashboard (e.g., 'Pdf-Generator' in your screenshot)
-const CLOUDINARY_CLOUD_NAME = "dvspaifhh"; 
+// IMPORTANT: These are set using YOUR Cloud Name and Upload Preset from the provided screenshots
+const CLOUDINARY_CLOUD_NAME = "dv5pajfhh"; 
 const CLOUDINARY_UPLOAD_PRESET = "Pdf-Generator"; 
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
@@ -175,20 +175,19 @@ async function handleImageImport(file) {
 
 /**
  * Deletes an asset from Cloudinary and removes its reference from Firestore.
+ * IMPORTANT: Client-side Cloudinary deletion without a server is insecure and requires a signed API call.
+ * For this simple app, we're just deleting the Firestore reference and notifying the user.
+ * For a production app, this would involve a Firebase Cloud Function or similar backend to securely delete from Cloudinary.
  */
 window.promptDeleteAsset = async function (assetId, assetName, publicId) {
-    const confirmation = await UTILS.showStatusModal("Delete Asset", `Are you sure you want to delete the asset "${assetName}"? This will be removed from Cloudinary and Firestore.`, true, true);
+    const confirmation = await UTILS.showStatusModal("Delete Asset", `Are you sure you want to delete the asset "${assetName}"? This will remove its reference from your project. (Note: Actual file might remain on Cloudinary without a secure server-side delete).`, true, true);
     
     if (confirmation === true) {
-        // 1. Delete reference from Firestore (first, as it's easier and synchronous)
+        // 1. Delete reference from Firestore
         await FB.deleteAsset(FB.currentProjectId, assetId);
         
-        // 2. Cloudinary deletion (requires a signed call, which is advanced, 
-        // but for a simple web app, we'll keep the file on Cloudinary and rely on removing the reference, 
-        // or prompt the user for manual deletion/use an advanced secure server function).
-        // Since we cannot securely sign the deletion call on the client-side, we notify the user 
-        // that the file might remain in their Cloudinary storage for cleanup.
-        UTILS.showStatusModal("Cleanup Note", `The image reference was removed. Since Cloudinary deletion requires a secure server key, you may need to manually remove the file (Public ID: ${publicId}) from your Cloudinary console.`, false);
+        // 2. Notify the user about manual Cloudinary cleanup
+        UTILS.showStatusModal("Asset Deleted (Cloudinary Note)", `The image reference for "${assetName}" was removed. Due to security, the actual file (Public ID: ${publicId}) might still be in your Cloudinary account. You may need to delete it manually there.`, false);
 
 
         // 3. Update local state and UI
@@ -225,7 +224,7 @@ window.promptRenameProject = async function (projectId, currentName) {
  * Prompts user for confirmation before deleting a project.
  */
 window.promptDeleteProject = async function (projectId, projectName) {
-    const confirmation = await UTILS.showStatusModal("Delete Project", `Are you sure you want to permanently delete "${projectName}"? Note: Linked images will remain on Cloudinary.`, true, true);
+    const confirmation = await UTILS.showStatusModal("Delete Project", `Are you sure you want to permanently delete "${projectName}"? Note: Linked images will remain on Cloudinary without a secure server-side delete.`, true, true);
     if (confirmation === true) {
         await FB.deleteExistingProject(projectId);
         if (FB.currentProjectId === projectId) {
@@ -282,7 +281,6 @@ function startProjectListener() {
         } else {
             UI.renderProjectList(projectList, loadProject);
             if (FB.currentProjectId) {
-                // Re-fetch assets in case of change and re-render the preview
                 currentProjectAssets = await FB.getAssets(FB.currentProjectId);
                 UI.renderAssetList(currentProjectAssets);
                 UTILS.updatePreview(FB.currentProjectContent, currentProjectAssets);
