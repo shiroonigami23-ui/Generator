@@ -1,0 +1,258 @@
+:root {
+    /* Dark Theme Variables (Default) */
+    --color-primary: #1e40af; /* Blue-700 */
+    --color-secondary: #1f2937; /* Gray-800 */
+    --color-background: #0f172a; /* Slate-900 */
+    --color-text: #f3f4f6; /* Gray-100 */
+    --color-editor-bg: #111827; /* Gray-900 */
+    --color-surface: #1e293b; /* Slate-800 */
+    --color-border: #334155; /* Slate-700 */
+
+    /* Preview Theme (Always Light for document look) */
+    --preview-bg: #ffffff;
+    --preview-text: #000000;
+}
+
+body.light-theme {
+    /* Light Theme Variables */
+    --color-primary: #3b82f6; /* Blue-500 */
+    --color-secondary: #f3f4f6; /* Gray-100 */
+    --color-background: #ffffff; /* White */
+    --color-text: #1f2937; /* Gray-900 */
+    --color-editor-bg: #f9fafb; /* Gray-50 */
+    --color-surface: #f3f4f6; /* Gray-100 */
+    --color-border: #d1d5db; /* Gray-300 */
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+}
+
+/* Base Styles */
+.sidebar-base {
+    width: 280px;
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    flex-shrink: 0;
+    z-index: 40; /* Above main content */
+}
+
+/* Mobile Adjustments */
+@media (max-width: 1024px) {
+    #sidebar {
+        position: fixed;
+        height: 100vh;
+    }
+}
+
+.profile-card {
+    padding: 1rem;
+    background-color: var(--color-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border);
+}
+
+.ai-panel {
+    background-color: var(--color-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.document-item {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.1s;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.document-item:hover {
+    background-color: rgba(var(--color-primary), 0.1);
+}
+.document-item.active {
+    background-color: var(--color-primary);
+    color: white;
+}
+.document-item.active .doc-controls button {
+    color: white;
+}
+
+/* Input Fields & Buttons */
+.input-field {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: var(--color-editor-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-field:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.3);
+}
+
+.btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+    transition: transform 0.1s, opacity 0.2s;
+}
+.btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-ai-quick {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem; /* sm */
+    padding: 0.5rem 0.8rem;
+    border-radius: 9999px; /* full rounded */
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    transition: background-color 0.2s;
+}
+.btn-ai-quick:hover {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+/* Code Editor Styling */
+.code-editor-styles {
+    background-color: var(--color-editor-bg);
+    color: var(--color-text);
+    min-height: 400px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    resize: none;
+    line-height: 1.4;
+    tab-size: 4;
+    border: 1px solid var(--color-border);
+    /* Hide scrollbar for cleaner look */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.code-editor-styles::-webkit-scrollbar {
+    display: none;
+}
+
+/* Modal Styling */
+.modal-card {
+    background-color: var(--color-editor-bg);
+    color: var(--color-text);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+}
+
+/* --- Preview Document Styles (Simulating PDF Look) --- */
+.preview-page-styles {
+    min-height: 400px;
+    overflow-y: auto;
+    background-color: var(--preview-bg);
+    color: var(--preview-text);
+    /* Simulate Paper Margins */
+    padding: 2.5cm;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ccc;
+}
+
+.preview-status-text {
+    background-color: #f3f4f6; /* Light gray for status */
+    color: #4b5563; /* Dark gray text */
+    border: 1px solid #e5e7eb;
+}
+
+/* Preview Content Typography */
+.preview-page-styles h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+}
+
+.preview-page-styles h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 0.2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.preview-page-styles h4 {
+    font-size: 1.25rem;
+    font-style: italic;
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Table styling for preview */
+.preview-page-styles table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    border: 1px solid #000;
+}
+.preview-page-styles th, .preview-page-styles td {
+    padding: 0.5rem;
+    text-align: left;
+    border: 1px solid #ccc;
+}
+.preview-page-styles th {
+    background-color: #f0f0f0;
+    font-weight: 600;
+}
+.preview-page-styles caption {
+    caption-side: bottom;
+    text-align: center;
+    font-style: italic;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Figure/Placeholder styling */
+.preview-page-styles .figure-placeholder {
+    border: 1px dashed #555;
+    background-color: #fcfcfc;
+    padding: 1rem;
+    margin: 1rem auto;
+    text-align: center;
+}
+.preview-page-styles .figure-caption {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Math Block Styling */
+.preview-page-styles .math-block {
+    display: block;
+    text-align: center;
+    font-family: serif;
+    font-size: 1.1rem;
+    padding: 0.5rem;
+    margin: 1rem 0;
+    border: 1px solid #eee;
+    background-color: #f8f8f8;
+}
+
+/* Mobile Grid Layout */
+@media (max-width: 767px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .preview-page-styles {
+        padding: 1.5rem; /* Smaller margins on mobile */
+    }
+}
