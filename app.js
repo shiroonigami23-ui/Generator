@@ -57,7 +57,7 @@ function loadDocument(doc) {
 
     // Close sidebar on mobile after loading
     if (window.innerWidth < 1024) {
-        DOMElements.sidebar.classList.add('transform', '-translate-x-full');
+        DOMElements.sidebar.classList.add('-translate-x-full');
     }
 }
 
@@ -153,7 +153,6 @@ window.promptDeleteDocument = async function (docId, docName) {
 
 function insertAITemplate(templateType) {
     let prompt;
-    // ... (logic remains the same)
 
     switch (templateType) {
         case 'table':
@@ -250,22 +249,20 @@ function setupEventListeners() {
     DOMElements.aiGenerateBtn.addEventListener('click', () => handleAIGenerate(DOMElements.aiPrompt.value));
 
     // Export and File Management
-    // *** CALLING THE NEW COMPILER FUNCTION ***
     DOMElements.exportBtn.addEventListener('click', () => {
-        if (FB.currentDocumentContent) {
-            UTILS.exportPDFToCompiler(FB.currentDocumentContent);
-        } else {
-            UTILS.showStatusModal("Export Failed", "There is no content to compile. Please add some LaTeX code first.", true);
-        }
+        const title = DOMElements.documentTitleDisplay.textContent;
+        // Call the seamless, simulated API function
+        UTILS.exportPDFToCompiler(FB.currentDocumentContent, title);
     });
-    // *****************************************
     
     DOMElements.newDocumentBtn.addEventListener('click', () => createNewDocument('New Document ' + (documentList.length + 1)));
 
     // Sidebar and Theme
     DOMElements.themeToggleBtn.addEventListener('click', UI.toggleTheme);
-    DOMElements.sidebarToggleBtn.addEventListener('click', () => DOMElements.sidebar.classList.toggle('transform'));
-    DOMElements.sidebarToggleBtnMobile.addEventListener('click', () => DOMElements.sidebar.classList.toggle('transform'));
+    
+    // Layout Fix: Toggle the sidebar visibility using the 'transform' class
+    DOMElements.sidebarToggleBtn.addEventListener('click', () => DOMElements.sidebar.classList.toggle('-translate-x-full'));
+    DOMElements.sidebarToggleBtnMobile.addEventListener('click', () => DOMElements.sidebar.classList.toggle('-translate-x-full'));
 
 
     // AI Quick-Insert
@@ -297,6 +294,11 @@ async function initApp() {
 
     // 3. Set up Auth State Observer
     FB.observeAuthState(handleAuthChange);
+    
+    // CRITICAL LAYOUT FIX: Ensure sidebar is hidden on small screens initially
+    if (window.innerWidth < 1024) {
+        DOMElements.sidebar.classList.add('-translate-x-full');
+    }
 
     // 4. Setup all click/input handlers
     setupEventListeners();
