@@ -60,6 +60,67 @@ export function showStatusModal(title, message, isError = false, isConfirmation 
     });
 }
 
+
+/**
+ * Executes a seamless, client-side conversion of the Live Preview HTML into a PDF.
+ * This is instantaneous and uses the visual representation directly.
+ * @param {string} documentTitle - The title of the current document.
+ */
+export async function exportHTMLToPDF(documentTitle) {
+    if (!previewContainer.innerHTML.trim() || previewContainer.textContent.includes('Error')) {
+        showStatusModal("Export Failed", "The preview content is empty or contains an error.", true);
+        return;
+    }
+    
+    // --- UI Setup for Seamless Experience ---
+    const exportBtn = document.getElementById('exportBtn');
+    const originalText = exportBtn.innerHTML;
+    const fileName = (documentTitle.replace(/[^a-z0-9]/gi, '_') || 'document') + '.pdf';
+    
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating PDF...`;
+    
+    showStatusModal(
+        "Generating PDF", 
+        "Converting the live preview into a PDF document. This is near-instantaneous.", 
+        false, 
+        false, 
+        false
+    );
+    
+    // Hide modal after a brief delay
+    setTimeout(() => { modal.classList.add('hidden'); }, 1500); 
+
+    // --- HTML to PDF Conversion ---
+    try {
+        // We configure html2pdf to use A4 paper size and keep the original padding (margins)
+        const opt = {
+            margin: 0, // Margin is defined by the CSS padding of the preview container
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, logging: false, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        // Use the global html2pdf object (loaded via CDN)
+        await html2pdf().set(opt).from(previewContainer).save();
+
+        // Update button success state
+        exportBtn.title = 'PDF Downloaded!';
+
+    } catch (error) {
+        console.error("PDF Generation Failed:", error);
+        showStatusModal("PDF Generation Error", `Conversion failed: ${error.message}`, true);
+    } finally {
+        // Reset button state
+        exportBtn.disabled = false;
+        setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.title = originalTitle || 'Export PDF';
+        }, 500);
+    }
+}
+
 /**
  * SIMULATED: Sends LaTeX code to a dedicated backend compiler and triggers
  * an immediate PDF download, providing a seamless experience.
