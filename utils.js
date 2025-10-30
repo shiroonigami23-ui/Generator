@@ -1,4 +1,3 @@
-
 // --- Modal Elements ---
 const modal = document.getElementById('statusModal');
 const modalTitle = document.getElementById('modalTitle');
@@ -61,23 +60,71 @@ export function showStatusModal(title, message, isError = false, isConfirmation 
 }
 
 /**
- * Simulates the PDF export process by navigating to a placeholder download link.
+ * SIMULATED: Sends LaTeX code to an external compilation API (like Overleaf) 
+ * and handles the PDF download flow immediately.
+ * @param {string} latexContent - The LaTeX code to compile.
  */
-export async function exportPDFSimulation() {
-    await showStatusModal("Compiling...", "In a real application, the current LaTeX code would be sent to a compilation server (via API). Please wait...", false, false, false);
+export async function exportPDFToCompiler(latexContent) {
+    const COMPILER_API_URL = "https://compiler-api.overleaf-like.com/compile"; // Hypothetical endpoint
+    const API_KEY = "YOUR_OVERLEAF_API_KEY_HERE"; // Placeholder for a real API key
 
+    await showStatusModal(
+        "Compiling Document...", 
+        "Sending document to the external LaTeX compiler (simulated). This process usually takes 2-5 seconds for complex files.", 
+        false, 
+        false, 
+        false
+    );
+
+    const exportBtn = document.getElementById('exportBtn');
+    const originalText = exportBtn.innerHTML;
+    
+    // Set UI to loading state
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Compiling`;
+    
+    // Simulate API call and latency (to match the "seconds" requirement)
     try {
-        // Realistic 2 second delay for compilation server response
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds compilation time
 
-        // Placeholder URL for simulation.
-        const downloadUrl = "https://placehold.co/600x400/1e40af/ffffff?text=SIMULATED+PDF+DOWNLOAD";
-        window.open(downloadUrl, '_blank');
+        // --- Simulated API Response ---
+        // In a real scenario, this would be a fetch call:
+        /*
+        const response = await fetch(COMPILER_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
+            body: JSON.stringify({ source: latexContent, format: 'pdf' })
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Compilation failed on server.");
+        }
+        const result = await response.json(); // Assuming the response contains a PDF URL
+        const pdfUrl = result.pdfUrl;
+        */
+        
+        // Use a placeholder URL for the compiled PDF
+        const pdfUrl = "https://placehold.co/600x400/1e40af/ffffff?text=Compiled+PDF+Ready";
+        
+        // Open the PDF in a new tab for immediate viewing/download
+        window.open(pdfUrl, '_blank');
 
-        showStatusModal("Export Successful", "Compilation complete! Your PDF download has been initiated (simulated).", false);
+        showStatusModal("Export Successful", "Document compiled successfully! Your PDF is opening in a new tab.", false);
 
     } catch (error) {
-        showStatusModal("Export Failed", `A compilation error occurred: ${error.message}`, true);
+        console.error("Compilation Failed:", error);
+        // Assuming we could parse a detailed error from a real API response
+        const errorMessage = error.message.includes("Compilation failed") 
+            ? "Compilation failed. Check your LaTeX syntax for errors (e.g., missing brackets, undefined commands)."
+            : `An unknown error occurred: ${error.message}`;
+            
+        showStatusModal("Compilation Error", errorMessage, true);
+
+    } finally {
+        // Reset UI state
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = originalText;
+        modal.classList.add('hidden'); // Hide the modal if the download was successful
     }
 }
 
@@ -196,7 +243,6 @@ export function simpleLatexToHtml(latex) {
  */
 export function updatePreview(content = document.getElementById('latexEditor').value) {
     // The actual save logic is handled by app.js when updatePreview is called
-    const editor = document.getElementById('latexEditor');
     const previewContainer = document.getElementById('previewContainer');
     previewContainer.innerHTML = simpleLatexToHtml(content);
 }
