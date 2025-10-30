@@ -69,7 +69,7 @@ const getAssetRef = (projectId, assetId) => {
     return doc(getProjectAssetsCollection(projectId), assetId);
 };
 
-// --- Initialization ---
+// --- Initialization (No change from previous step) ---
 
 /**
  * Initializes Firebase App and services.
@@ -138,7 +138,7 @@ export async function signOutUser() {
 }
 
 
-// --- Project CRUD Operations (Renamed from Document) ---
+// --- Project CRUD Operations (No change from previous step) ---
 
 /**
  * Saves the current project content and name (if provided).
@@ -256,40 +256,43 @@ export function listenForProjects(callback) {
     }
 }
 
-// --- Asset Management Operations (NEW) ---
+// --- Asset Management Operations (UPDATED FOR URL STORAGE) ---
 
 /**
- * Saves an image file as a Base64 string asset under the current project.
- * @param {string} fileName - The original file name.
- * @param {string} base64Data - The Base64 representation of the image.
+ * Saves a new asset entry (name and URL) under the current project.
+ * The actual file upload happens externally (Cloudinary).
+ * @param {string} fileName - The original file name (used as asset ID).
+ * @param {string} publicUrl - The public URL returned by Cloudinary.
+ * @param {string} publicId - The public ID returned by Cloudinary (for deletion).
  * @returns {Promise<void>}
  */
-export async function saveAsset(fileName, base64Data) {
+export async function saveAsset(fileName, publicUrl, publicId) {
     if (!currentProjectId) throw new Error("Cannot save asset: No current project loaded.");
-    if (!isAuthReady) throw new Error("Firebase not ready for asset upload.");
+    if (!isAuthReady) throw new Error("Firebase not ready for asset storage.");
 
     try {
-        // Use the filename to ensure uniqueness for now, or you could use doc() for a random ID
+        // Use the filename to ensure uniqueness as the document ID
         const assetRef = doc(getProjectAssetsCollection(currentProjectId), fileName);
         await setDoc(assetRef, {
             name: fileName,
-            data: base64Data, // Store Base64 string directly
+            url: publicUrl, // Store the public URL
+            publicId: publicId, // Store the Cloudinary Public ID for deletion
             uploadedAt: serverTimestamp(),
             projectId: currentProjectId
         });
-        showStatusModal("Asset Saved", `Asset "${fileName}" uploaded successfully.`, false);
+        showStatusModal("Asset Saved", `Asset "${fileName}" URL stored successfully.`, false);
 
     } catch (error) {
-        console.error("Error saving asset:", error);
-        showStatusModal("Asset Error", `Failed to upload asset: ${error.message}`, true);
+        console.error("Error saving asset URL:", error);
+        showStatusModal("Asset Error", `Failed to save asset URL: ${error.message}`, true);
         throw error;
     }
 }
 
 /**
- * Fetches all assets for the given project ID.
+ * Fetches all assets (URLs) for the given project ID.
  * @param {string} projectId - The ID of the project.
- * @returns {Promise<Array<object>>} - List of assets { id, name, data, uploadedAt }.
+ * @returns {Promise<Array<object>>} - List of assets { id, name, url, publicId, uploadedAt }.
  */
 export async function getAssets(projectId) {
     if (!isAuthReady) return [];
@@ -302,13 +305,14 @@ export async function getAssets(projectId) {
         }));
     } catch (error) {
         console.error("Error fetching assets:", error);
-        showStatusModal("Asset Error", `Failed to fetch assets for project.`, true);
+        // Note: We don't show a modal here to avoid spamming on every project load failure.
         return [];
     }
 }
 
 /**
- * Deletes a specific asset from the project.
+ * Deletes a specific asset reference from the project.
+ * The actual Cloudinary file deletion is handled externally (in app.js).
  * @param {string} projectId - The project ID.
  * @param {string} assetId - The asset ID (filename).
  */
@@ -316,9 +320,9 @@ export async function deleteAsset(projectId, assetId) {
     if (!isAuthReady) throw new Error("Firebase not ready for asset deletion.");
     try {
         await deleteDoc(getAssetRef(projectId, assetId));
-        showStatusModal("Asset Deleted", `Asset "${assetId}" removed successfully.`, false);
+        showStatusModal("Asset Reference Deleted", `Asset reference for "${assetId}" removed from Firestore.`, false);
     } catch (error) {
-        console.error("Error deleting asset:", error);
-        showStatusModal("Deletion Error", `Failed to delete asset: ${error.message}`, true);
+        console.error("Error deleting asset reference:", error);
+        showStatusModal("Deletion Error", `Failed to delete asset reference: ${error.message}`, true);
     }
 }
