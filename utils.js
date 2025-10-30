@@ -31,8 +31,9 @@ export function showStatusModal(title, message, isError = false, isConfirmation 
         modalMessage.textContent = message;
 
         // Apply styling
-        modalContent.classList.remove('border-blue-500', 'border-red-500');
-        modalContent.classList.add(isError ? 'border-red-500' : 'border-blue-500');
+        modalContent.classList.remove('border-blue-500', 'border-red-500', 'border-t-4');
+        const borderColor = isError ? 'border-red-500' : 'border-blue-500';
+        modalContent.classList.add(borderColor, 'border-t-4');
 
         if (isConfirmation) {
             modalConfirmBtn.textContent = isInput ? 'Save' : 'Confirm';
@@ -60,71 +61,72 @@ export function showStatusModal(title, message, isError = false, isConfirmation 
 }
 
 /**
- * SIMULATED: Sends LaTeX code to an external compilation API (like Overleaf) 
- * and handles the PDF download flow immediately.
+ * SIMULATED: Sends LaTeX code to a dedicated backend compiler and triggers
+ * an immediate PDF download, providing a seamless experience.
  * @param {string} latexContent - The LaTeX code to compile.
+ * @param {string} documentTitle - The title of the current document.
  */
-export async function exportPDFToCompiler(latexContent) {
-    const COMPILER_API_URL = "https://compiler-api.overleaf-like.com/compile"; // Hypothetical endpoint
-    const API_KEY = "YOUR_OVERLEAF_API_KEY_HERE"; // Placeholder for a real API key
-
-    await showStatusModal(
-        "Compiling Document...", 
-        "Sending document to the external LaTeX compiler (simulated). This process usually takes 2-5 seconds for complex files.", 
+export async function exportPDFToCompiler(latexContent, documentTitle) {
+    if (!latexContent || !latexContent.trim()) {
+        showStatusModal("Export Failed", "There is no content to compile. Please add some LaTeX code first.", true);
+        return;
+    }
+    
+    // --- UI Setup for Seamless Experience ---
+    const exportBtn = document.getElementById('exportBtn');
+    const originalText = exportBtn.innerHTML;
+    const originalTitle = exportBtn.title;
+    
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Compiling...`;
+    
+    // Show a small status modal that disappears after the process starts
+    showStatusModal(
+        "Compiling Document", 
+        "Sending document to the high-speed compiler. This takes just a few seconds...", 
         false, 
         false, 
         false
     );
+    
+    // Hide modal after a brief delay so the user focuses on the button animation
+    setTimeout(() => { modal.classList.add('hidden'); }, 1500); 
 
-    const exportBtn = document.getElementById('exportBtn');
-    const originalText = exportBtn.innerHTML;
-    
-    // Set UI to loading state
-    exportBtn.disabled = true;
-    exportBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Compiling`;
-    
-    // Simulate API call and latency (to match the "seconds" requirement)
+    // --- Simulated API Call and Download ---
     try {
-        await new Promise(resolve => setTimeout(resolve, 3000)); // 3 seconds compilation time
+        // 1. Simulate network and compilation latency (3 seconds for a seamless feel)
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
 
-        // --- Simulated API Response ---
-        // In a real scenario, this would be a fetch call:
-        /*
-        const response = await fetch(COMPILER_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` },
-            body: JSON.stringify({ source: latexContent, format: 'pdf' })
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Compilation failed on server.");
-        }
-        const result = await response.json(); // Assuming the response contains a PDF URL
-        const pdfUrl = result.pdfUrl;
-        */
+        // 2. Simulate PDF content generation (creates a dummy PDF blob)
+        // In a real app, this would be: const pdfResponse = await fetch(COMPILER_API_URL, { ... });
+        const pdfContent = "Simulated PDF Content"; 
+        const blob = new Blob([pdfContent], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
         
-        // Use a placeholder URL for the compiled PDF
-        const pdfUrl = "https://placehold.co/600x400/1e40af/ffffff?text=Compiled+PDF+Ready";
+        // 3. Trigger immediate download
+        const a = document.createElement('a');
+        a.href = url;
+        const fileName = documentTitle.replace(/[^a-z0-9]/gi, '_') || 'document';
+        a.download = `${fileName}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
-        // Open the PDF in a new tab for immediate viewing/download
-        window.open(pdfUrl, '_blank');
-
-        showStatusModal("Export Successful", "Document compiled successfully! Your PDF is opening in a new tab.", false);
+        // 4. Update button success state
+        exportBtn.innerHTML = originalText;
+        exportBtn.title = 'PDF Downloaded!';
 
     } catch (error) {
         console.error("Compilation Failed:", error);
-        // Assuming we could parse a detailed error from a real API response
-        const errorMessage = error.message.includes("Compilation failed") 
-            ? "Compilation failed. Check your LaTeX syntax for errors (e.g., missing brackets, undefined commands)."
-            : `An unknown error occurred: ${error.message}`;
-            
-        showStatusModal("Compilation Error", errorMessage, true);
-
+        showStatusModal("Compilation Error", `PDF export failed in the backend: ${error.message}`, true);
     } finally {
-        // Reset UI state
+        // 5. Reset button state after animation is complete
         exportBtn.disabled = false;
-        exportBtn.innerHTML = originalText;
-        modal.classList.add('hidden'); // Hide the modal if the download was successful
+        setTimeout(() => {
+            exportBtn.innerHTML = originalText;
+            exportBtn.title = originalTitle;
+        }, 500);
     }
 }
 
