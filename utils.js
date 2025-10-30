@@ -66,7 +66,7 @@ export function showStatusModal(title, message, isError = false, isConfirmation 
 
 /**
  * Executes a seamless, client-side conversion of the Live Preview HTML into a PDF.
- * Uses html2pdf.js to convert the visible HTML output.
+ * This is the clever method to get the visually rich (image-included) output into a PDF instantly.
  * @param {string} projectTitle - The title of the current project.
  */
 export async function exportHTMLToPDF(projectTitle) {
@@ -85,7 +85,7 @@ export async function exportHTMLToPDF(projectTitle) {
     
     showStatusModal(
         "Generating PDF", 
-        "Converting the live preview into a PDF document instantly.", 
+        "Converting the live preview into a PDF document instantly (Simulated LaTeX Compile).", 
         false, 
         false, 
         false
@@ -97,6 +97,7 @@ export async function exportHTMLToPDF(projectTitle) {
     // --- HTML to PDF Conversion ---
     try {
         // We configure html2pdf to use A4 paper size and keep the original padding (margins)
+        // This is the trick: converting the rendered HTML output, which contains the URLs to the images.
         const opt = {
             margin: 0, // Margin is defined by the CSS padding of the preview container
             filename: fileName,
@@ -113,7 +114,7 @@ export async function exportHTMLToPDF(projectTitle) {
 
     } catch (error) {
         console.error("PDF Generation Failed:", error);
-        showStatusModal("PDF Generation Error", `Conversion failed: ${error.message}`, true);
+        showStatusModal("PDF Generation Error", `Conversion failed: ${error.message}. Ensure images are loaded via CORS.`, true);
     } finally {
         // Reset button state
         exportBtn.disabled = false;
@@ -127,15 +128,15 @@ export async function exportHTMLToPDF(projectTitle) {
 
 /**
  * Simple parser to convert LaTeX syntax into styled HTML for the live preview.
- * NEW: Now handles \includegraphics{filename} by replacing it with Base64 image data.
+ * UPDATED: Uses URL from the assets list for images.
  * @param {string} latex - Raw LaTeX content.
- * @param {Array<object>} assets - List of assets { name, data (Base64) }.
+ * @param {Array<object>} assets - List of assets { name, url, publicId }.
  * @returns {string} - Styled HTML string.
  */
 export function simpleLatexToHtml(latex, assets = []) {
     // Convert asset array to a map for quick filename lookup
     const assetMap = new Map();
-    assets.forEach(asset => assetMap.set(asset.name, asset.data));
+    assets.forEach(asset => assetMap.set(asset.name, asset.url));
 
     // 1. Extract content between \begin{document} and \end{document}
     let html = "<p class='text-center text-red-500'>Error: \\begin{document} or \\end{document} not found.</p>";
@@ -146,7 +147,7 @@ export function simpleLatexToHtml(latex, assets = []) {
         return html;
     }
 
-    // 2. Extract and format Title Block (Same as before)
+    // 2. Extract and format Title Block
     const titleMatch = latex.match(/\\title\{(.*?)\}/i);
     const authorMatch = latex.match(/\\author\{(.*?)\}/i);
     const dateMatch = latex.match(/\\date\{(.*?)\}/i);
@@ -160,20 +161,20 @@ export function simpleLatexToHtml(latex, assets = []) {
     html = html.replace(/\\maketitle/g, '');
 
 
-    // 3. Structural elements (Same as before)
+    // 3. Structural elements
     html = html.replace(/\\section\{(.*?)\}/g, '<h3>$1</h3>');
     html = html.replace(/\\subsection\{(.*?)\}/g, '<h4>$1</h4>');
     html = html.replace(/\\textbf\{(.*?)\}/g, '<strong>$1</strong>');
     html = html.replace(/\\textit\{(.*?)\}/g, '<em>$1</em>');
     html = html.replace(/\n/g, '<br>');
 
-    // 4. Mathematics: Equations and inline math (Same as before)
+    // 4. Mathematics: Equations and inline math
     html = html.replace(/\$([^\$]+)\$/g, '<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">$1</code>'); // Inline math
     html = html.replace(/\\begin\{equation\}([\s\S]*?)\\end\{equation\}/g, (match, equation) => {
         return `<span class="math-block">${equation.trim().replace(/\\ /g, '')}</span>`;
     });
 
-    // 5. Lists (Same as before)
+    // 5. Lists
     html = html.replace(/\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/g, (match, listContent) => {
         const items = listContent.split('\\item').slice(1).map(item =>
             `<li class="list-disc ml-6">${item.trim().replace(/<br>/g, '')}</li>`
@@ -181,22 +182,32 @@ export function simpleLatexToHtml(latex, assets = []) {
         return `<ul class="my-2">${items}</ul>`;
     });
 
-    // 6. Figures and Images (UPDATED: Handle \includegraphics)
+    // 6. Figures and Images (UPDATED: Handle \includegraphics using URL)
     // The regex matches \includegraphics followed by optional parameters in [...] and the mandatory filename in {}
     html = html.replace(/\\begin\{figure\}([\s\S]*?)\\end\{figure\}/g, (match, figureContent) => {
         const captionMatch = figureContent.match(/\\caption\{(.*?)\}/i);
-        const includeGraphicsMatch = figureContent.match(/\\includegraphics\[.*?\]\{(.*?)\}/i) || figureContent.match(/\\includegraphics\{(.*?)\}/i);
+        // Extracts the filename.ext from \includegraphics[...]{filename.ext} or \includegraphics{filename.ext}
+        const includeGraphicsMatch = figureContent.match(/\\includegraphics(\[.*?\])?\{(.*?)\}/i);
         
         const caption = captionMatch ? captionMatch[1] : 'Figure Caption Missing';
         let imageHtml = '';
 
         if (includeGraphicsMatch) {
-            const fileName = includeGraphicsMatch[1];
-            const base64Data = assetMap.get(fileName);
+            const fileName = includeGraphicsMatch[2]; // Index 2 holds the content inside the {}
+            const publicUrl = assetMap.get(fileName);
 
-            if (base64Data) {
-                // Replace with actual Base64 image
-                imageHtml = `<img src="${base64Data}" alt="Figure: ${caption}" class="asset-image" />`;
+            if (publicUrl) {
+                // Replace with actual public image URL
+                // We also strip out Cloudinary transformation parameters (e.g., width) if provided in LaTeX 
+                // and rely on CSS/HTML attributes to control size.
+                let widthAttribute = '';
+                const widthMatch = includeGraphicsMatch[1]?.match(/width=([\d\.]+)[\w]*/i);
+                if (widthMatch) {
+                    // Simple heuristic: set a max-width based on the LaTeX width parameter
+                    widthAttribute = `style="max-width: ${parseFloat(widthMatch[1]) * 100}px;"`; 
+                }
+
+                imageHtml = `<img src="${publicUrl}" alt="Figure: ${caption}" class="asset-image" ${widthAttribute} />`;
             } else {
                 // Image not found in assets list
                 imageHtml = `
@@ -223,17 +234,14 @@ export function simpleLatexToHtml(latex, assets = []) {
     });
 
 
-    // 7. Tables (Same as before)
-    // NOTE: This table parsing is still basic and doesn't handle complex alignment/booktabs rules perfectly in HTML
+    // 7. Tables
     html = html.replace(/\\begin\{tabular\}\{([cl\|]*)\}([\s\S]*?)\\end\{tabular\}/g, (match, alignment, tableContent) => {
         const rows = tableContent.trim().split('\\\\').filter(row => row.trim());
         let tableHtml = '<table>';
 
-        // Simplified logic: treat the first non-rule row as header
         let inHeader = true;
 
         rows.forEach((row) => {
-            // Remove rules and newlines
             if (row.includes('\\toprule') || row.includes('\\midrule') || row.includes('\\bottomrule') || row.trim() === '') {
                 return; 
             }
@@ -246,7 +254,7 @@ export function simpleLatexToHtml(latex, assets = []) {
 
             if (inHeader) {
                 tableHtml += `<thead><tr>${cellHtml}</tr></thead><tbody>`;
-                inHeader = false; // Switch to body after the first row
+                inHeader = false;
             } else {
                 tableHtml += `<tr>${cellHtml}</tr>`;
             }
@@ -254,7 +262,6 @@ export function simpleLatexToHtml(latex, assets = []) {
 
         tableHtml += '</tbody></table>';
 
-        // Look for \caption right after the table
         const captionMatch = latex.substring(latex.indexOf(match) + match.length).match(/\\caption\{(.*?)\}/i);
         if (captionMatch) {
             tableHtml += `<caption>Table: ${captionMatch[1]}</caption>`;
@@ -271,12 +278,10 @@ export function simpleLatexToHtml(latex, assets = []) {
 
 /**
  * Updates the preview and saves the project content.
- * Needs to be exported to be accessible by app.js and window.
  * @param {string} content - The LaTeX content.
  * @param {Array<object>} assets - The list of project assets.
  */
 export function updatePreview(content, assets = []) {
-    // The actual save logic is handled by app.js when updatePreview is called
-    // Ensure content and assets are passed to the HTML parser
+    const previewContainer = document.getElementById('previewContainer');
     previewContainer.innerHTML = simpleLatexToHtml(content, assets);
 }
