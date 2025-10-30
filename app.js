@@ -3,12 +3,19 @@ import * as UI from "./ui.js";
 import * as UTILS from "./utils.js";
 import { generateLatexWithAI } from "./ai.js";
 
+// --- Cloudinary Configuration (Unsigned Upload) ---
+// IMPORTANT: Replace with your actual Cloud Name and Upload Preset
+// You must create an unsigned upload preset in your Cloudinary dashboard (e.g., 'Pdf-Generator' in your screenshot)
+const CLOUDINARY_CLOUD_NAME = "dvspaifhh"; 
+const CLOUDINARY_UPLOAD_PRESET = "Pdf-Generator"; 
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
 // --- Global State for Project and UI ---
 const DOMElements = UI.DOMElements;
-let projectList = []; // Cache of the current project list
-let currentProjectAssets = []; // Cache of the current project's assets
+let projectList = []; 
+let currentProjectAssets = []; 
 let isAILoading = false;
-let unsubscribeProjects = null; // Holds the function to stop the Firestore listener
+let unsubscribeProjects = null; 
 
 // Default template for new projects
 const DEFAULT_LATEX_CONTENT = `\\documentclass[10pt, a4paper]{article}
@@ -27,14 +34,14 @@ const DEFAULT_LATEX_CONTENT = `\\documentclass[10pt, a4paper]{article}
 \\maketitle
 
 \\section{Introduction}
-This project utilizes AI to generate LaTeX code and client-side Base64 images for the preview.
+This project uses Cloudinary for external image hosting.
 
 \\section{Assets (Images)}
 To insert an image, use the 'Import Asset' button in the sidebar, then use the command:
 \\begin{figure}[h!]
   \\centering
   \\includegraphics[width=0.8\\textwidth]{my_chart.png}
-  \\caption{Example Asset Placeholder.}
+  \\caption{Example Asset Placeholder. Replace my\_chart.png with your asset filename.}
 \\end{figure}
 
 \\section{Conclusion}
@@ -58,10 +65,10 @@ async function loadProject(project) {
     
     DOMElements.aiStatus.textContent = "Loading project assets...";
     
-    // 1. Fetch assets for the new project
+    // 1. Fetch asset URLs from Firestore
     currentProjectAssets = await FB.getAssets(project.id);
     
-    // 2. Update preview with content AND assets
+    // 2. Update preview with content AND asset URLs
     UTILS.updatePreview(project.content, currentProjectAssets);
     
     // 3. Re-render list to highlight active project and asset list
@@ -70,7 +77,6 @@ async function loadProject(project) {
 
     DOMElements.aiStatus.textContent = "Project loaded and assets synchronized.";
 
-    // Close sidebar on mobile after loading
     if (window.innerWidth < 1024) {
         DOMElements.sidebar.classList.add('-translate-x-full');
     }
@@ -78,17 +84,14 @@ async function loadProject(project) {
 
 /**
  * Updates the preview and saves the project content.
- * This is the function attached to window.updatePreview
  */
 function handleUpdatePreviewAndSave(content = DOMElements.latexEditor.value) {
     FB.saveProject(content);
-    // Use the cached assets when updating the preview
     UTILS.updatePreview(content, currentProjectAssets); 
 }
 
 /**
  * Handles AI generation/editing request.
- * @param {string} prompt - The AI command or template prompt.
  */
 async function handleAIGenerate(prompt) {
     if (isAILoading) return;
@@ -105,13 +108,13 @@ async function handleAIGenerate(prompt) {
     try {
         const newLatex = await generateLatexWithAI(prompt, FB.currentProjectContent);
 
-        // Update editor, save, and preview (Assets remain the same unless reloaded)
+        // Update editor, save, and preview
         DOMElements.latexEditor.value = newLatex;
-        FB.saveProject(newLatex); // Save new content to Firestore
+        FB.saveProject(newLatex);
         UTILS.updatePreview(newLatex, currentProjectAssets);
 
         DOMElements.aiStatus.textContent = "AI generation complete. LaTeX updated and saved.";
-        DOMElements.aiPrompt.value = ''; // Clear prompt after success
+        DOMElements.aiPrompt.value = '';
 
     } catch (error) {
         console.error("AI Generation Error:", error);
@@ -125,7 +128,7 @@ async function handleAIGenerate(prompt) {
 }
 
 /**
- * Reads a file from input, converts it to Base64, and saves it as an asset.
+ * Uploads a file to Cloudinary and saves the resulting URL to Firestore.
  * @param {File} file - The file uploaded by the user.
  */
 async function handleImageImport(file) {
@@ -133,35 +136,76 @@ async function handleImageImport(file) {
         UTILS.showStatusModal("Import Error", "Please load a project before importing assets.", true);
         return;
     }
-    
-    // Use FileReader to convert File to Base64
-    const reader = new FileReader();
-    reader.onload = async function(event) {
-        const base64Data = event.target.result;
-        try {
-            await FB.saveAsset(file.name, base64Data);
-            // Re-fetch and update UI
-            currentProjectAssets = await FB.getAssets(FB.currentProjectId);
-            UI.renderAssetList(currentProjectAssets);
-            handleUpdatePreviewAndSave(); // Re-render preview to show new asset if used
-            DOMElements.aiStatus.textContent = `Asset "${file.name}" uploaded. Insert via \\includegraphics{${file.name}}`;
-        } catch (e) {
-            // Error handled in FB.saveAsset
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    // Use the user's ID as a folder for organization
+    formData.append('folder', `latex-studio/${FB.userId}`); 
+
+    DOMElements.aiStatus.textContent = `Uploading ${file.name} to Cloudinary...`;
+
+    try {
+        const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || `Cloudinary upload failed with status ${response.status}`);
         }
-    };
-    reader.onerror = () => UTILS.showStatusModal("File Error", "Failed to read file.", true);
-    reader.readAsDataURL(file);
+
+        const data = await response.json();
+        
+        // 1. Save the asset URL and Public ID to Firestore
+        await FB.saveAsset(file.name, data.secure_url, data.public_id);
+        
+        // 2. Update local state and UI
+        currentProjectAssets = await FB.getAssets(FB.currentProjectId);
+        UI.renderAssetList(currentProjectAssets);
+        handleUpdatePreviewAndSave(); 
+        DOMElements.aiStatus.textContent = `Asset "${file.name}" uploaded successfully. Use \\includegraphics{${file.name}}`;
+
+    } catch (error) {
+        console.error("Cloudinary/Asset Upload Error:", error);
+        UTILS.showStatusModal("Upload Failed", `Could not upload asset: ${error.message}`, true);
+    }
+}
+
+/**
+ * Deletes an asset from Cloudinary and removes its reference from Firestore.
+ */
+window.promptDeleteAsset = async function (assetId, assetName, publicId) {
+    const confirmation = await UTILS.showStatusModal("Delete Asset", `Are you sure you want to delete the asset "${assetName}"? This will be removed from Cloudinary and Firestore.`, true, true);
+    
+    if (confirmation === true) {
+        // 1. Delete reference from Firestore (first, as it's easier and synchronous)
+        await FB.deleteAsset(FB.currentProjectId, assetId);
+        
+        // 2. Cloudinary deletion (requires a signed call, which is advanced, 
+        // but for a simple web app, we'll keep the file on Cloudinary and rely on removing the reference, 
+        // or prompt the user for manual deletion/use an advanced secure server function).
+        // Since we cannot securely sign the deletion call on the client-side, we notify the user 
+        // that the file might remain in their Cloudinary storage for cleanup.
+        UTILS.showStatusModal("Cleanup Note", `The image reference was removed. Since Cloudinary deletion requires a secure server key, you may need to manually remove the file (Public ID: ${publicId}) from your Cloudinary console.`, false);
+
+
+        // 3. Update local state and UI
+        currentProjectAssets = await FB.getAssets(FB.currentProjectId);
+        UI.renderAssetList(currentProjectAssets);
+        handleUpdatePreviewAndSave(); 
+    }
 }
 
 
-// --- Project Management Wrappers (Renamed from Document) ---
+// --- Project Management Wrappers ---
 
 async function createNewProject(name = 'Untitled Project') {
     if (!FB.isAuthReady || !FB.userId) return;
     try {
         const content = DEFAULT_LATEX_CONTENT.replace(`User ID: \${FB.userId || 'Authenticated User'}`, `User ID: ${FB.userId}`);
         await FB.createNewProject(name, content);
-        // The listener will handle loading the new project
     } catch (e) {
         // Error handled in FB.createNewProject
     }
@@ -181,11 +225,10 @@ window.promptRenameProject = async function (projectId, currentName) {
  * Prompts user for confirmation before deleting a project.
  */
 window.promptDeleteProject = async function (projectId, projectName) {
-    const confirmation = await UTILS.showStatusModal("Delete Project", `Are you sure you want to permanently delete "${projectName}"? All assets will be lost.`, true, true);
+    const confirmation = await UTILS.showStatusModal("Delete Project", `Are you sure you want to permanently delete "${projectName}"? Note: Linked images will remain on Cloudinary.`, true, true);
     if (confirmation === true) {
         await FB.deleteExistingProject(projectId);
         if (FB.currentProjectId === projectId) {
-            // Deleted active project, clear state
             FB.currentProjectId = null;
             FB.currentProjectContent = '';
             currentProjectAssets = [];
@@ -196,21 +239,6 @@ window.promptDeleteProject = async function (projectId, projectName) {
         }
     }
 };
-
-/**
- * Deletes an asset and updates the UI.
- */
-window.promptDeleteAsset = async function (assetId, assetName) {
-    const confirmation = await UTILS.showStatusModal("Delete Asset", `Are you sure you want to delete the asset "${assetName}"?`, true, true);
-    if (confirmation === true) {
-        await FB.deleteAsset(FB.currentProjectId, assetId);
-        // Re-fetch and update UI
-        currentProjectAssets = await FB.getAssets(FB.currentProjectId);
-        UI.renderAssetList(currentProjectAssets);
-        handleUpdatePreviewAndSave(); // Re-render preview to remove image
-    }
-}
-
 
 // --- AI Quick-Insert Logic ---
 
@@ -237,29 +265,24 @@ function insertAITemplate(templateType) {
 
 function startProjectListener() {
     if (unsubscribeProjects) {
-        unsubscribeProjects(); // Stop previous listener if one exists
+        unsubscribeProjects(); 
     }
-    // Renamed listenForDocuments to listenForProjects
-    unsubscribeProjects = FB.listenForProjects(async (projects) => {
+    FB.listenForProjects(async (projects) => {
         projectList = projects;
         
-        // Update profile info immediately
         UI.initializeProfile();
 
-        // 1. If no projects exist, create the first one automatically
         if (projects.length === 0) {
             createNewProject('First Project');
-            return; // Listener will fire again with the new project
+            return; 
         }
 
-        // 2. If we don't have an active project yet, or if the active one was deleted, load the most recent one
         if (!FB.currentProjectId || !projects.find(p => p.id === FB.currentProjectId)) {
             await loadProject(projects[0]);
         } else {
-            // If the active project already exists, just re-render the project list
             UI.renderProjectList(projectList, loadProject);
-            // Re-render assets just in case they were changed in another tab (though assets are not real-time listener-driven here)
             if (FB.currentProjectId) {
+                // Re-fetch assets in case of change and re-render the preview
                 currentProjectAssets = await FB.getAssets(FB.currentProjectId);
                 UI.renderAssetList(currentProjectAssets);
                 UTILS.updatePreview(FB.currentProjectContent, currentProjectAssets);
@@ -271,30 +294,24 @@ function startProjectListener() {
 
 /**
  * Handles the main authentication state change.
- * @param {object|null} user - The authenticated user object or null.
  */
 function handleAuthChange(user) {
     const splashScreen = document.getElementById('splashScreen');
     const appContainer = document.getElementById('appContainer');
 
     if (user) {
-        // Authenticated
         splashScreen.classList.add('opacity-0', 'hidden');
         appContainer.classList.remove('hidden');
         appContainer.classList.add('opacity-100');
         
-        // Update profile with user info
         DOMElements.userNameDisplay.textContent = user.displayName || 'Authenticated User';
         DOMElements.userIdDisplay.textContent = `ID: ${user.uid.substring(0, 8)}...`;
         
-        // Start project listener for the new user
         startProjectListener();
         
     } else {
-        // Not Authenticated
         appContainer.classList.add('hidden');
         
-        // Stop any active listener when logging out
         if (unsubscribeProjects) {
             unsubscribeProjects();
             unsubscribeProjects = null;
@@ -302,11 +319,9 @@ function handleAuthChange(user) {
             currentProjectAssets = [];
         }
         
-        // Show splash screen
         splashScreen.classList.remove('hidden');
         setTimeout(() => splashScreen.classList.remove('opacity-0'), 10);
         
-        // Clear UI/state
         DOMElements.latexEditor.value = 'Sign in to start creating projects.';
         DOMElements.projectTitleDisplay.textContent = 'AI LaTeX Studio';
         DOMElements.projectList.innerHTML = '<p class="text-sm text-gray-500 p-2">Sign in to view projects.</p>';
@@ -326,7 +341,6 @@ function setupEventListeners() {
         UTILS.exportHTMLToPDF(title);
     });
     
-    // Renamed newDocumentBtn to newProjectBtn
     DOMElements.newProjectBtn.addEventListener('click', () => createNewProject('New Project ' + (projectList.length + 1)));
 
     // Asset File Input Handler (New)
@@ -335,15 +349,12 @@ function setupEventListeners() {
         if (file) {
             handleImageImport(file);
         }
-        // Clear file input so the 'change' event fires again if the same file is selected
         event.target.value = ''; 
     });
 
 
     // Sidebar and Theme
     DOMElements.themeToggleBtn.addEventListener('click', UI.toggleTheme);
-    
-    // Layout Fix: Toggle the sidebar visibility using the 'transform' class
     DOMElements.sidebarToggleBtn.addEventListener('click', () => DOMElements.sidebar.classList.toggle('-translate-x-full'));
     DOMElements.sidebarToggleBtnMobile.addEventListener('click', () => DOMElements.sidebar.classList.toggle('-translate-x-full'));
 
@@ -361,10 +372,10 @@ function setupEventListeners() {
     window.updatePreview = handleUpdatePreviewAndSave;
 
     // Expose functions globally for HTML calls
-    window.loadProject = loadProject; // Exposed loadProject globally
+    window.loadProject = loadProject; 
     window.promptRenameProject = window.promptRenameProject;
     window.promptDeleteProject = window.promptDeleteProject;
-    window.promptDeleteAsset = window.promptDeleteAsset; // New: Exposed delete asset
+    window.promptDeleteAsset = window.promptDeleteAsset; 
 }
 
 
@@ -379,7 +390,6 @@ async function initApp() {
     // 3. Set up Auth State Observer
     FB.observeAuthState(handleAuthChange);
     
-    // CRITICAL LAYOUT FIX: Ensure sidebar is hidden on small screens initially
     if (window.innerWidth < 1024) {
         DOMElements.sidebar.classList.add('-translate-x-full');
     }
