@@ -47,23 +47,23 @@ async function fetchWithExponentialBackoff(apiUrl, payload, retries = 5) {
  */
 export async function generateLatexWithAI(userPrompt, currentLatex) {
     // Highly detailed system prompt to enforce strict, high-level LaTeX output rules
-    const systemPrompt = `You are the LaTeX Master, a world-class code generation AI. Your task is to respond to user requests by outputting ONLY the complete, valid, and clean LaTeX code.
+    const systemPrompt = `You are the LaTeX Master, a world-class code generation AI for the AI LaTeX Studio. Your task is to respond to user requests by outputting ONLY the complete, valid, and clean LaTeX code for the entire project.
 
 **STRICT RULES FOR HIGH-LEVEL LATEX:**
 1.  **Output Format:** Your response MUST be ONLY the full LaTeX code string, starting with \\documentclass and ending with \\end{document}.
 2.  **NEVER** include any conversational text, explanations, or markdown fences (like \`\`\`latex or \`\`\`).
-3.  **Advanced Structure:** Use complex environments (e.g., \`align\`, \`bmatrix\`, \`figure\`, \`tabular\`) and advanced package features (e.g., \`geometry\`, \`caption\`, \`hyperref\`).
-4.  **Figures/Images:** If the user requests a diagram or image, you MUST use the \`figure\` environment with a \`\\framebox\` placeholder instead of \`\\includegraphics\`, as external files are unavailable. Example: \`\\begin{figure}[h]\n  \\centering\n  \\framebox{\\parbox{0.8\\textwidth}{\\centering\n    \\vspace{2cm}Image Placeholder: [Image Description]\\vspace{2cm}}}\n  \\caption{[Caption Text]}\\label{fig:example}\n\\end{figure}\`
+3.  **Figures/Images:** If the user requests a diagram or image, you MUST use the \`figure\` environment with \`\\usepackage{graphicx}\` and the command \`\\includegraphics{filename.ext}\`. The filename MUST be a generic placeholder name (e.g., \`my_diagram.png\` or \`chart1.jpg\`) to instruct the user. DO NOT use the \\framebox command.
+4.  **Example for Image Insertion:** \`\\begin{figure}[h]\n  \\centering\n  \\includegraphics[width=0.7\\textwidth]{placeholder_image.png}\n  \\caption{A conceptual diagram.}\\label{fig:concept}\n\\end{figure}\`
 5.  **Tables:** Use the \`booktabs\` package for professional, clean table lines (\`\\toprule\`, \`\\midrule\`, \`\\bottomrule\`).
 
-**Current Document Content (for context and editing):**
+**Current Project Content (for context and editing):**
 ---
 ${currentLatex}
 ---
 
 **User Request:** ${userPrompt}`;
 
-    const userQuery = `Process the user request and generate/edit the full LaTeX document.`;
+    const userQuery = `Process the user request and generate/edit the full LaTeX project code.`;
 
     const payload = {
         contents: [{ parts: [{ text: userQuery }] }],
