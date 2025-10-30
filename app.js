@@ -108,7 +108,7 @@ async function handleAIGenerate(prompt) {
     }
 }
 
-// --- Document Management Wrappers (Uses new FB.userId) ---
+// --- Document Management Wrappers ---
 
 async function createNewDocument(name = 'Untitled Document') {
     if (!FB.isAuthReady || !FB.userId) return;
@@ -250,7 +250,16 @@ function setupEventListeners() {
     DOMElements.aiGenerateBtn.addEventListener('click', () => handleAIGenerate(DOMElements.aiPrompt.value));
 
     // Export and File Management
-    DOMElements.exportBtn.addEventListener('click', UTILS.exportPDFSimulation);
+    // *** CALLING THE NEW COMPILER FUNCTION ***
+    DOMElements.exportBtn.addEventListener('click', () => {
+        if (FB.currentDocumentContent) {
+            UTILS.exportPDFToCompiler(FB.currentDocumentContent);
+        } else {
+            UTILS.showStatusModal("Export Failed", "There is no content to compile. Please add some LaTeX code first.", true);
+        }
+    });
+    // *****************************************
+    
     DOMElements.newDocumentBtn.addEventListener('click', () => createNewDocument('New Document ' + (documentList.length + 1)));
 
     // Sidebar and Theme
@@ -264,7 +273,7 @@ function setupEventListeners() {
     DOMElements.insertFigureBtn.addEventListener('click', () => insertAITemplate('figure'));
     DOMElements.insertMathBtn.addEventListener('click', () => insertAITemplate('math'));
     
-    // --- New Auth Event Listeners ---
+    // Auth Event Listeners
     document.getElementById('googleSignInBtn').addEventListener('click', FB.signInWithGoogle);
     document.getElementById('signOutBtn').addEventListener('click', FB.signOutUser);
     
@@ -272,6 +281,7 @@ function setupEventListeners() {
     window.updatePreview = handleUpdatePreviewAndSave;
 
     // Expose functions globally for HTML calls
+    window.loadDocument = loadDocument; // Expose loadDocument globally
     window.promptRenameDocument = window.promptRenameDocument;
     window.promptDeleteDocument = window.promptDeleteDocument;
 }
