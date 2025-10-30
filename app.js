@@ -251,8 +251,8 @@ function setupEventListeners() {
     // Export and File Management
     DOMElements.exportBtn.addEventListener('click', () => {
         const title = DOMElements.documentTitleDisplay.textContent;
-        // Call the seamless, simulated API function
-        UTILS.exportPDFToCompiler(FB.currentDocumentContent, title);
+        // Call the new seamless HTML to PDF function
+        UTILS.exportHTMLToPDF(title);
     });
     
     DOMElements.newDocumentBtn.addEventListener('click', () => createNewDocument('New Document ' + (documentList.length + 1)));
