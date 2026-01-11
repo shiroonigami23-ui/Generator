@@ -1,6 +1,6 @@
 // Configuration for the Gemini API
 const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
-const API_KEY = "AIzaSyAlZA1onvz9D5-z4mNTKvCNL5Vb0SPv-38"; // Canvas environment handles the key
+const API_KEY = "GENERATOR_AI_KEY_PLACEHOLDER"; // Canvas environment handles the key
 
 /**
  * Handles exponential backoff for API calls.
