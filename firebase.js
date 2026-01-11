@@ -30,7 +30,7 @@ const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial
 
 // --- Firebase Configuration (Using provided global config or hardcoded fallback) ---
 const FALLBACK_FIREBASE_CONFIG = {
-    apiKey: "AIzaSyBugNXrZaf4QlLdMjh92iUV8obwaV8-XKI",
+    apiKey: "GENERATOR_FB_KEY_PLACEHOLDER",
     authDomain: "generator-a3655.firebaseapp.com",
     projectId: "generator-a3655",
     storageBucket: "generator-a3655.firebasestorage.app",
