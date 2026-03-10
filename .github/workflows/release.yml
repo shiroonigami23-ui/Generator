@@ -1,0 +1,28 @@
+﻿name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-release-assets:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build release binary
+        run: swift build -c release
+
+      - name: Create package artifacts
+        shell: pwsh
+        run: ./scripts/package.ps1
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/generator-source-v*.zip
+            dist/generator-macos-universal-v*.tar.gz

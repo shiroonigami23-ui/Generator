@@ -1,67 +1,49 @@
-# ⚡ The Generator
+﻿# Generator (Swift)
 
-![Status](https://img.shields.io/badge/Status-Live-success)
-![Type](https://img.shields.io/badge/Type-Utility-orange)
-![Security](https://img.shields.io/badge/Security-Client_Side-green)
+Generator is a Swift-native toolkit for producing secure random outputs from the command line.
 
-> **A robust, client-side tool for generating secure passwords, tokens, and random data instantly.**
+## Features
+- Password generation with configurable length and character sets
+- Token generation in `hex` or `base64`
+- Human-readable passphrase generation
+- Entropy and strength rating for generated passwords
 
-**The Generator** is a minimalist web application designed to help users create strong, unbreakable passwords and random strings. Unlike online tools that send data to a server, this tool runs entirely in your browser, ensuring that your generated secrets remain 100% private and secure.
+## Tech Stack
+- Swift Package Manager
+- `GeneratorCore` library target
+- `generator` CLI executable target
+- XCTest test suite
 
----
+## Project Layout
+- `Package.swift`
+- `Sources/GeneratorCore/` - core generation logic
+- `Sources/GeneratorCLI/` - command-line entrypoint
+- `Tests/GeneratorCoreTests/` - automated tests
+- `scripts/package.ps1` - source packaging script
+- `.github/workflows/` - CI and release automation
 
-## 🔗 Live Demo
+## CLI Usage
+```bash
+generator password --length 24 --no-symbols
+generator token --bytes 32 --format base64
+generator passphrase --words 5 --separator -
+```
 
-**Generate secure keys now:**
-### [🔑 Launch The Generator](https://shiroonigami23-ui.github.io/Generator/)
+## Build
+```bash
+swift build -c release
+```
 
----
+## Test
+```bash
+swift test
+```
 
-## ✨ Key Features
+## Package
+```powershell
+./scripts/package.ps1
+```
+Creates `dist/generator-source-v1.0.0.zip`.
 
-### 🔐 Secure Password Generation
-- **Customizable Length:** Slider to adjust password length (8 to 128 characters).
-- **Character Control:** Toggles for:
-  - Uppercase Letters (A-Z)
-  - Lowercase Letters (a-z)
-  - Numbers (0-9)
-  - Special Symbols (!@#$%)
-- **Entropy Logic:** Uses cryptographically strong random number generation (Web Crypto API) instead of `Math.random()` for maximum security.
-
-### 🛡️ Strength Analysis
-- **Visual Strength Meter:** Real-time indicator showing if your password is Weak, Medium, or Strong.
-- **Crack Time Estimation:** (Optional) Displays how long it would take a computer to brute-force the generated string.
-
-### ⚡ User Experience
-- **One-Click Copy:** Instantly copy the generated string to your clipboard.
-- **History Log:** Temporarily view the last 5 generated passwords (cleared on refresh for security).
-- **Dark Mode:** Sleek interface that respects your system's color preferences.
-
----
-
-## 🎮 How to Use
-
-1. **Set Preferences:** Use the checkboxes to select which characters you want to include (e.g., enable Symbols for higher security).
-2. **Adjust Length:** Drag the slider to set your desired password length (recommended: 16+).
-3. **Generate:** Click the **"Generate"** button (or press Spacebar).
-4. **Copy:** Click the Copy icon to save it to your clipboard.
-5. **Use:** Paste it into your login form or password manager.
-
----
-
-## 📸 Screenshots
-
-| Desktop View | Mobile View |
-|:---:|:---:|
-| *Full configuration panel* | *Responsive layout* |
-
----
-
-## 💻 Local Installation
-
-To run this tool offline or locally:
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/shiroonigami23-ui/Generator.git](https://github.com/shiroonigami23-ui/Generator.git)
-   
+## Security Note
+Generation uses Swift's system random APIs and does not depend on browser-side randomness.

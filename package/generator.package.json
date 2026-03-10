@@ -1,0 +1,23 @@
+﻿{
+  "name": "generator",
+  "version": "1.0.0",
+  "description": "Swift-native secure generator toolkit (passwords, tokens, passphrases).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shiroonigami23-ui/Generator"
+  },
+  "artifacts": [
+    {
+      "id": "source",
+      "path": "dist/generator-source-v1.0.0.zip",
+      "kind": "source"
+    },
+    {
+      "id": "macos-binary",
+      "path": "dist/generator-macos-universal-v1.0.0.tar.gz",
+      "kind": "binary",
+      "platform": "macos"
+    }
+  ]
+}
