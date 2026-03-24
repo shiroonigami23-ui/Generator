@@ -1,4 +1,4 @@
-﻿name: Release
+name: Release
 
 on:
   release:
@@ -26,3 +26,29 @@ jobs:
           files: |
             dist/generator-source-v*.zip
             dist/generator-macos-universal-v*.tar.gz
+
+  build-android-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build release APK
+        working-directory: android-app
+        run: ./gradlew assembleRelease
+
+      - name: Upload APK to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: android-app/app/build/outputs/apk/release/app-release.apk
