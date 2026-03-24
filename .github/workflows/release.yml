@@ -32,4 +32,4 @@ jobs:
       - name: Upload APK to release
         uses: softprops/action-gh-release@v2
         with:
-          files: android-app/app/build/outputs/apk/release/app-release.apk
+          files: android-app/app/build/outputs/apk/release/app-release*.apk
