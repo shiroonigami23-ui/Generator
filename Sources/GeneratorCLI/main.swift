@@ -47,7 +47,7 @@ struct CLI {
 
         let secret = generator.generatePassword(profile: profile)
         print(secret.value)
-        print("entropy_bits=\(String(format: \"%.2f\", secret.entropyBits))")
+        print("entropy_bits=\(String(format: "%.2f", secret.entropyBits))")
         print("strength=\(secret.strength.rawValue)")
         return 0
     }
